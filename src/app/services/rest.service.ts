@@ -25,6 +25,14 @@ export function describeTimeout(effectiveTimeoutMs: number): string {
   return `Request timed out after ${effectiveTimeoutMs} ms.`;
 }
 
+/**
+ * SPEC §3.3 amendment wording: the configuration declared `timeoutIsSuccess`, so
+ * waiting out the timeout counts as the request having done its job.
+ */
+export function describeTimeoutSuccess(effectiveTimeoutMs: number): string {
+  return `Request timed out after ${effectiveTimeoutMs} ms — counted as success (timeoutIsSuccess).`;
+}
+
 /** Status-only message: nothing from the request ever reaches the screen. */
 export function describeHttpFailure(status: number): string {
   return `The server responded with HTTP status ${status}.`;
@@ -71,7 +79,16 @@ export class RestService {
       .pipe(
         map((response) => this.fromResponse(response.status, response.body ?? '')),
         timeout(effective.effectiveTimeoutMs),
-        catchError((error: unknown) => of(this.fromError(error, effective.url, effective.effectiveTimeoutMs)))
+        catchError((error: unknown) =>
+          of(
+            this.fromError(
+              error,
+              effective.url,
+              effective.effectiveTimeoutMs,
+              req.timeoutIsSuccess === true,
+            ),
+          ),
+        )
       );
   }
 
@@ -89,9 +106,18 @@ export class RestService {
     };
   }
 
-  private fromError(error: unknown, url: string, effectiveTimeoutMs: number): RestOutcome {
+  private fromError(
+    error: unknown,
+    url: string,
+    effectiveTimeoutMs: number,
+    timeoutIsSuccess: boolean,
+  ): RestOutcome {
     if (error instanceof TimeoutError) {
-      return { ok: false, kind: 'timeout', message: describeTimeout(effectiveTimeoutMs) };
+      // SPEC §3.3 amendment: the configuration may declare a timeout a success
+      // (fire-and-forget endpoints that restart the very service answering).
+      return timeoutIsSuccess
+        ? { ok: true, kind: 'timeout', message: describeTimeoutSuccess(effectiveTimeoutMs) }
+        : { ok: false, kind: 'timeout', message: describeTimeout(effectiveTimeoutMs) };
     }
     if (error instanceof HttpErrorResponse) {
       if (error.status === 0) {

@@ -7,7 +7,7 @@
  * pure apart from the `FileReader` used to turn an image into a `data:` URL — so
  * every rule is unit-testable without a device.
  */
-import type { ValidationIssue } from './types';
+import type { AnyRestConfig, ValidationIssue } from './types';
 
 /** Largest icon the app copies into its own storage (base64 grows it by ~33%). */
 export const MAX_ICON_BYTES = 512 * 1024;
@@ -33,6 +33,35 @@ export interface SelectionSplit<T extends PickedFile = PickedFile> {
 const JSON_FILE = /\.json$/i;
 const ICON_FILE = /\.(png|webp)$/i;
 const ICON_TYPE = /^image\/(png|webp)$/i;
+const ABSOLUTE_ICON = /^(https?:\/\/|data:)/i;
+
+/**
+ * Plain image names a configuration needs that the selection did not bring.
+ *
+ * This is the check that turns a silent fallback tile into a visible warning: a
+ * configuration naming `get.png` while no image was selected would otherwise
+ * confirm happily and show initials instead of the image the user expected.
+ * A configuration with `app.iconpath` is exempt — there the name may legitimately
+ * resolve against that base.
+ */
+export function missingIconNames(
+  config: AnyRestConfig,
+  icons: ReadonlyMap<string, string>,
+): string[] {
+  const base = config.app.iconpath?.trim() ?? '';
+  if (base !== '') {
+    return [];
+  }
+  const missing: string[] = [];
+  for (const button of config.buttons) {
+    const name = button.icon?.trim() ?? '';
+    if (name === '' || ABSOLUTE_ICON.test(name) || icons.has(name) || missing.includes(name)) {
+      continue;
+    }
+    missing.push(name);
+  }
+  return missing;
+}
 
 const isConfigFile = (f: PickedFile): boolean =>
   JSON_FILE.test(f.name) || f.type.toLowerCase() === 'application/json';

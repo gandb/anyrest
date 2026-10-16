@@ -1,13 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- usesCleartextTraffic: this app calls REST services that the USER configures, and those are often
+         plain http on a home network (e.g. http://media-center:7755/...). Android blocks cleartext by
+         default. Trade-off accepted deliberately: the app may send request bodies (tokens included) over
+         plain http to those hosts. To restrict it to named hosts instead, drop this attribute and use a
+         network-security-config with a <domain-config cleartextTrafficPermitted="true">. -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        android:usesCleartextTraffic="true">
 
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation|density"

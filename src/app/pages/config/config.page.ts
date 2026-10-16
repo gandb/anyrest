@@ -6,7 +6,7 @@
  * lists the issues and leaves the active configuration untouched.
  */
 import { AsyncPipe } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   IonButton,
@@ -18,9 +18,15 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { checkmarkOutline, closeOutline, cloudDownloadOutline, documentOutline } from 'ionicons/icons';
+import {
+  checkmarkOutline,
+  closeOutline,
+  cloudDownloadOutline,
+  documentOutline,
+  folderOpenOutline,
+} from 'ionicons/icons';
 import { ButtonIconComponent } from '../../components/button-icon/button-icon.component';
-import { readIconDataUrls, splitSelection } from '../../core/picked-files';
+import { missingIconNames, readIconDataUrls, splitSelection } from '../../core/picked-files';
 import type { AnyRestConfig, ValidationIssue } from '../../core/types';
 import { validateConfig } from '../../core/validate';
 import { ConfigService } from '../../services/config.service';
@@ -56,6 +62,15 @@ export class ConfigPage {
   /** Names of picked files that are neither the configuration nor an allowed icon. */
   readonly ignoredFiles = signal<readonly string[]>([]);
 
+  /**
+   * Images the previewed configuration names but the selection did not bring.
+   * Shown as a loud warning so a missing image never becomes a silent tile.
+   */
+  readonly missingIcons = computed(() => {
+    const candidate = this.preview();
+    return candidate === null ? [] : missingIconNames(candidate, this.pendingIcons());
+  });
+
   /** Issues of the last unsuccessful attempt; empty when there is none. */
   readonly issues = signal<readonly ValidationIssue[]>([]);
 
@@ -66,7 +81,7 @@ export class ConfigPage {
   readonly busy = signal(false);
 
   constructor() {
-    addIcons({ checkmarkOutline, closeOutline, cloudDownloadOutline, documentOutline });
+    addIcons({ checkmarkOutline, closeOutline, cloudDownloadOutline, documentOutline, folderOpenOutline });
   }
 
   /**

@@ -48,7 +48,8 @@
         "headers":   { "type": "object", "additionalProperties": { "type": "string" }, "maxProperties": 100 },
         "queryParams":{ "type": "object", "additionalProperties": { "type": "string" }, "maxProperties": 100 },
         "body":      { "type": ["object","array","string"] },
-        "timeoutMs": { "type": "integer", "minimum": 1 }
+        "timeoutMs": { "type": "integer", "minimum": 1 },
+        "timeoutIsSuccess": { "type": "boolean" }
       }
     },
     "response": {

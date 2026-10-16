@@ -9,6 +9,22 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`"timeoutIsSuccess": true`** (optional, per button, in `request`): counts a **timeout as a success**.
+  It exists for fire-and-forget endpoints — restart, reboot — that can never answer, because the process
+  answering is the one being restarted: the modal goes green reading `Timeout — counted as success` with
+  the message `Request timed out after N ms — counted as success (timeoutIsSuccess)`. Absent → a timeout
+  keeps meaning failure, and HTTP outcomes are untouched ("only 200 is success" stays frozen).
+- **Native HTTP on Android** (`plugins.CapacitorHttp.enabled` in `capacitor.config.ts`): requests — Angular's
+  XHR included — now go through Capacitor's native HTTP, so a service that sends no CORS headers can still be
+  called from the Android app. The browser build keeps the browser's own rules (a cross-origin endpoint must
+  answer the preflight, or the app shows its friendly network-error screen).
+- `android:usesCleartextTraffic="true"` in the Android manifest: plain `http://` services on the local network
+  (e.g. `http://media-center:7755/...`) can be called. Deliberate trade-off, documented in the manifest:
+  request bodies — tokens included — may travel unencrypted to those hosts.
+- **Select the folder instead**: on a desktop browser the configuration and its images can be taken from a
+  single folder pick (`webkitdirectory` — the folder must contain the `anyrest.json` and the images). Android
+  pickers may offer no folder option; there the file selection is the path. Either way the app classifies
+  what it received, copies the images into itself and lists anything it ignored.
 - Configuring from the phone with your own images — no folder permission, no native plugin. One
   picker selection takes `anyrest.json` **and its images together**; the app copies the images into
   itself and uses them whenever a button names an image while `app.iconpath` is absent. A name that
@@ -23,6 +39,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Android build toolchain on the dev machine: Temurin JDK 21 (`~/.local/jdk-21/jdk-21.0.12.1+1`)
   and the Android SDK (`~/Android/Sdk`) with `cmdline-tools` 9862592, `platforms;android-36`,
   `build-tools;36.0.0` and `platform-tools;37.0.1`, licenses accepted.
+
+### Fixed
+
+- An image copied into the app was ignored whenever the configuration carried `app.iconpath`: a button
+  naming that image still showed the fallback tile, because the iconpath was joined instead of using
+  the copied image. The copied image now wins for any name present in the copied set; `app.iconpath`
+  is used only for names that were not copied (which is what keeps the bundled demo working).
+  **Skipped check, named**: the first pass exercised the new flow with a configuration *without*
+  `iconpath` only — never with the repository's own `anyrest.json`, which carries `iconpath`, so the
+  precedence a real configuration hits was never exercised.
+- A configuration naming an image that the selection did not bring was accepted silently, so a user who
+  expected his own image saw the fallback tile with no explanation. The preview now warns loudly and
+  lists the missing names, and the picker no longer carries a type filter (it could hide the very
+  images that must be selected with the configuration).
 
 ## [0.1.0] - 2026-10-15
 

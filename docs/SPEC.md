@@ -87,7 +87,8 @@ and is used by the validator.
         "headers":   { "type": "object", "additionalProperties": { "type": "string" }, "maxProperties": 100 },
         "queryParams":{ "type": "object", "additionalProperties": { "type": "string" }, "maxProperties": 100 },
         "body":      { "type": ["object","array","string"] },
-        "timeoutMs": { "type": "integer", "minimum": 1 }
+        "timeoutMs": { "type": "integer", "minimum": 1 },
+        "timeoutIsSuccess": { "type": "boolean" }
       }
     },
     "response": {
@@ -122,6 +123,7 @@ and is used by the validator.
 | `buttons[].request.queryParams` | no | map string→string, ≤100 keys | absent | No query string. |
 | `buttons[].request.body` | no | object / array / string | absent | See §3.2. |
 | `buttons[].request.timeoutMs` | no | integer ≥1 | **30000** | **Clamped to [1000, 120000]** at runtime (§3.3). |
+| `buttons[].request.timeoutIsSuccess` | no | boolean | absent (`false`) | `true` counts a **timeout as a success** (§3.3 amendment) — for fire-and-forget endpoints (restart, reboot) that cannot answer because the service answering is the one restarting. |
 | `buttons[].response.display` | no | `json`/`text` | `json` | How to present the 200 body. |
 | `buttons[].response.successMessage` | no | string, ≤300 | app default | Shown on success. |
 | `buttons[].response.errorMessage` | no | string, ≤300 | app default | Shown on error. |
@@ -134,10 +136,10 @@ unmodelled fields, restriction 4).
 Resolution of `buttons[].icon` (string `icon`, optional base `app.iconpath`):
 1. If `icon` starts with `http://`, `https://`, or `data:` → use it **as-is** (`iconpath` ignored).
 2. Else (plain filename / relative path):
-   - if `app.iconpath` present → `join(iconpath, icon)` (single `/`, no duplicate slash,
-     a leading `/` on `icon` is not duplicated);
-   - if `app.iconpath` absent → look the name up in the **icons copied into the app** (§3.1.5);
-     a name that was never copied falls back to the tile.
+   - a name present in the **icons copied into the app** (§3.1.5) → use the copied image;
+   - otherwise, if `app.iconpath` present → `join(iconpath, icon)` (single `/`, no duplicate
+     slash, a leading `/` on `icon` is not duplicated);
+   - otherwise → fallback tile.
 3. The app renders the resolved URL in a **fixed square** box with `object-fit: cover`, so a
    non-square source is always cropped to a square. Allowed formats: **png, webp** (restriction 13).
 4. If the icon is absent, unresolvable, or fails to load → render a **fallback tile**
@@ -159,15 +161,25 @@ its own storage as `data:` URLs keyed by file name and reads them from there —
 `file://`, no persistent directory permission (restriction 10: a picked path is never assumed to
 stay reachable).
 
+- The user may pick the configuration and the images as **files** (one selection, any platform) or as a
+  **folder** (`webkitdirectory`: on a desktop browser the whole folder is read at once — the folder must
+  contain the `anyrest.json` and its images). Android pickers may offer no folder option, in which case
+  the file selection above is the path. Either way the app classifies what it received and lists what
+  it ignored.
 - Exactly one `*.json` per selection (zero or several is a reported error).
 - Only `.png` / `.webp` images are copied; anything else is listed as ignored, never dropped silently.
 - Each image is capped at **512 KiB** (base64 in storage grows it by ~33 %); an oversized, empty or
   duplicate-named image rejects the whole selection with the file named.
 - The copied set is **replaced as a whole** when the user confirms; re-selecting
   ("Update configuration") replaces it again. Nothing is written before the confirmation.
-- Resolution order is unchanged (rules 1–4 above); the copied set is consulted only where rule 2
-  would look for a web-app-relative URL, and only a name (or `data:` URL) the policy allows is
-  rendered — everything else is the fallback tile.
+- A configuration that names an image the selection did **not** bring is surfaced as a loud warning in
+  the preview, listing the names — a missing image is never a silent tile. The warning does not block
+  the confirmation (the configuration is still valid); a configuration carrying `app.iconpath` is
+  exempt, since there the name may legitimately resolve against that base.
+- Resolution order is unchanged for absolute sources (rule 1); for a plain name the **copied set is
+  consulted first** — what the user loaded is what shows — and `app.iconpath` is only used for a name
+  that was not copied (this is what keeps the bundled demo working). Only a name (or `data:` URL) the
+  policy allows is rendered; everything else is the fallback tile.
 
 ### 3.2 Body representation (FROZEN)
 - `body` object or array → serialized to JSON; `Content-Type: application/json` is set
@@ -182,6 +194,15 @@ stay reachable).
 **effective timeout = clamp(value, 1000, 120000)** ms; absent → 30000. Out-of-range values are
 clamped (not rejected) so a slightly-too-small timeout still works. Enforced with the RxJS
 `timeout(ms)` operator on the request stream.
+
+**Amendment (2026-10-16) — `timeoutIsSuccess`.** An optional boolean on the request. When it is
+`true` and the effective timeout actually fires, the outcome is reported as a **success with no
+HTTP status**: the modal goes green reading `Timeout — counted as success` and the message is
+`Request timed out after <ms> ms — counted as success (timeoutIsSuccess).` (a configured
+`response.successMessage` still wins). It exists for fire-and-forget endpoints — restart, reboot —
+that cannot answer because the process answering is the one being restarted. Absent → a timeout keeps
+meaning failure, exactly as before. HTTP outcomes are never affected: "only HTTP 200 is a success"
+stays frozen.
 
 ### 3.4 Dynamic parameters & optional values (FROZEN — no placeholders in v1)
 - **No placeholder/interpolation syntax exists in v1.** All `queryParams`, `headers`, and `body`

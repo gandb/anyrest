@@ -19,15 +19,23 @@ describe('resolveDisplayIconUrlWithStore (SPEC §3.1 amendment — copied icons)
     );
   });
 
-  it('keeps the frozen precedence: absolute sources and an explicit iconpath win', () => {
+  it('keeps absolute sources untouched and lets a copied image beat app.iconpath', () => {
     expect(
       resolveDisplayIconUrlWithStore('https://cdn.example.com/get.png', undefined, stored),
     ).toBe('https://cdn.example.com/get.png');
     expect(resolveDisplayIconUrlWithStore('data:image/webp;base64,X', undefined, stored)).toBe(
       'data:image/webp;base64,X',
     );
+    // Regression: a copied image used to lose to app.iconpath, so a user who had
+    // loaded his own image still saw the fallback tile.
     expect(resolveDisplayIconUrlWithStore('get.png', '/assets/icons', stored)).toBe(
-      '/assets/icons/get.png',
+      'data:image/png;base64,COPIED',
+    );
+  });
+
+  it('uses app.iconpath for a name that was not copied', () => {
+    expect(resolveDisplayIconUrlWithStore('other.png', '/assets/icons', stored)).toBe(
+      '/assets/icons/other.png',
     );
   });
 

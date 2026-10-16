@@ -63,10 +63,10 @@ export function resolveDisplayIconUrl(icon?: string, iconpath?: string): string 
 
 /**
  * Resolves the icon for display including the icons copied into the app (SPEC
- * §3.1 amendment). The frozen precedence is untouched: `http(s)`/`data:` is used
- * as-is and an explicit `app.iconpath` still wins. Only where the frozen rule
- * would treat the name as a web-app-relative URL — a plain name with no
- * `iconpath` — is the name looked up in the set the user copied in.
+ * §3.1 amendment). Absolute `http(s)`/`data:` sources keep the frozen precedence
+ * (rule 1). After that, **what the user copied is what shows**: a name present in
+ * the copied set beats `app.iconpath`, which is only used for names that were not
+ * copied. A name found nowhere falls back to the tile.
  */
 export function resolveDisplayIconUrlWithStore(
   icon: string | undefined,
@@ -80,13 +80,16 @@ export function resolveDisplayIconUrlWithStore(
   if (ABSOLUTE_ICON_PATTERN.test(name)) {
     return isAllowedIconUrl(name) ? name : null;
   }
+  const local = stored?.get(name);
+  if (local !== undefined && isAllowedIconUrl(local)) {
+    return local;
+  }
   const base = iconpath?.trim() ?? '';
   if (base !== '') {
     const joined = resolveIconUrl(name, base);
     return joined !== null && isAllowedIconUrl(joined) ? joined : null;
   }
-  const local = stored?.get(name);
-  return local !== undefined && isAllowedIconUrl(local) ? local : null;
+  return null;
 }
 
 /**

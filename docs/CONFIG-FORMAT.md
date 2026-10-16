@@ -62,6 +62,7 @@ config from smuggling fields the app does not model.
 | `request.queryParams` | no | object, string → string, ≤100 keys | absent | Appended to the URL as a query string. |
 | `request.body` | no | object \| array \| string | absent | Request body. Object/array → JSON; string → raw text. Rules below. |
 | `request.timeoutMs` | no | integer ≥ 1 | **30000** | Request timeout. **Clamped at runtime to `[1000, 120000]` ms** — a smaller or larger number is adjusted, not rejected. |
+| `request.timeoutIsSuccess` | no | boolean | absent (`false`) | `true` counts a **timeout as a success** — for endpoints that cannot answer because they restart the service answering them (see *Timeout*). |
 
 ### `buttons[].response`
 
@@ -87,6 +88,12 @@ config from smuggling fields the app does not model.
 ### Timeout
 
 - Default `30000` ms when `timeoutMs` is absent.
+- `"timeoutIsSuccess": true` (optional, default `false`) counts a **timeout as a success**. It exists for
+  fire-and-forget endpoints — restart, reboot — that can never answer, because the process answering is
+  the one being restarted. The modal then goes green reading `Timeout — counted as success`, with the
+  message `Request timed out after N ms — counted as success (timeoutIsSuccess).` (a configured
+  `response.successMessage` still wins). Absent → a timeout keeps meaning failure; HTTP responses are
+  never affected by this key.
 - **Effective timeout = clamp(value, 1000, 120000)**. A value below 1000 becomes 1000; above 120000
   becomes 120000. Clamping never fails validation.
 
@@ -113,11 +120,10 @@ Given `buttons[].icon` and the optional base `app.iconpath`:
 
 1. If `icon` starts with `http://`, `https://` or `data:` → used **as-is** (`iconpath` is ignored).
 2. Otherwise (a plain filename or relative path):
-   - `app.iconpath` present → `join(iconpath, icon)` (single `/`, no duplicate slash; a leading `/`
-     on `icon` is not duplicated);
-   - `app.iconpath` absent → the name is looked up in the **images you loaded with the
-     configuration** (see *Loading your own images* below); a name that was not loaded falls back to
-     the tile.
+   - a name present in the **images you loaded with the configuration** → that copied image is used;
+   - otherwise, if `app.iconpath` is present → `join(iconpath, icon)` (single `/`, no duplicate
+     slash; a leading `/` on `icon` is not duplicated);
+   - otherwise → fallback tile.
 3. The resolved URL is rendered in a **fixed square box** with `object-fit: cover`, so a non-square
    source is cropped to a square. Supported formats: **png, webp**.
 4. If the icon is absent, unresolvable, or fails to load → a **fallback tile** is rendered (square,
@@ -130,13 +136,17 @@ app.
 ### Loading your own images
 
 On the Configuration screen, one selection takes the `anyrest.json` **and its images together**
-(multi-select). The app copies the images into itself, so they keep working even if the original
+(multi-select), or — on a desktop browser — the whole folder at once (**Select the folder instead**,
+`webkitdirectory`). The app copies the images into itself, so they keep working even if the original
 files move; a later selection replaces the previous set as a whole.
 
 - Exactly one `*.json` per selection.
 - Only `.png` / `.webp`, at most **512 KiB** each. Anything else is listed as ignored; an oversized,
   empty or duplicate-named image rejects the selection and names the file.
 - Nothing is stored until you confirm; the same button ("Update configuration") re-selects later.
+- If the configuration names an image you did **not** select, the preview warns you and lists the
+  names: those rows show initials until you select them. (There is no type filter on the picker, so
+  the images are always selectable; anything the app cannot use is listed as ignored.)
 
 ### Optional values: OMIT the key
 
@@ -338,7 +348,9 @@ Nothing below is a promise; each line is a known gap.
 - **The device file picker** was only exercised in the browser, never on Android; the images copied by
   that flow were therefore verified in the browser only.
 - **CORS and timeout behaviour** was verified against a local/mocked server only — not against a
-  deliberately slow or misconfigured public endpoint.
+  deliberately slow or misconfigured public endpoint. Note the platform split: the Android app routes
+  requests through native HTTP (no CORS involved, cleartext allowed), while the browser build is bound by
+  the browser's same-origin policy.
 - **No dark-mode pass** and no systematic accessibility audit.
 - **Native `@capacitor/preferences` storage** behaviour was not observed on a device (browser
   storage only).

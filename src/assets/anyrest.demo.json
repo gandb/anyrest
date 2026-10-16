@@ -2,8 +2,7 @@
   "version": 1,
   "app": {
     "title": "AnyRest Demo",
-    "description": "Configurable REST operations (public demo endpoints on httpbin.org)",
-    "iconpath": "/assets/icons"
+    "description": "Configurable REST operations (public demo endpoints on httpbin.org)"
   },
   "buttons": [
     {

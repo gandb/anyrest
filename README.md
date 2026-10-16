@@ -101,19 +101,28 @@ The result is `android/app/build/outputs/apk/debug/app-debug.apk`.
 > permission `android.permission.INTERNET`. The APK has **not** been run on a device or
 > emulator — see "Not tested / not verified in this pass" below.
 
-`android/app/src/main/AndroidManifest.xml` already declares
-`<uses-permission android:name="android.permission.INTERNET" />`, which the app needs to make
-network calls. Real endpoints must be reachable over **HTTPS**: Android's default network-security
-configuration blocks cleartext HTTP, and that is a platform policy, not an app setting.
+`android/app/src/main/AndroidManifest.xml` declares
+`<uses-permission android:name="android.permission.INTERNET" />` and sets
+`android:usesCleartextTraffic="true"`, and the app enables Capacitor's native HTTP
+(`plugins.CapacitorHttp.enabled` in `capacitor.config.ts`). The consequence has two halves:
+
+- **Android app:** requests go through native HTTP, so a service that sends **no CORS headers** can still
+  be called, and plain **http://** on the local network is allowed (that is what the cleartext flag is for
+  — a deliberate trade-off: request bodies, tokens included, can travel unencrypted to those hosts).
+- **Browser build:** the browser's own rules apply and the app cannot bypass them — a cross-origin endpoint
+  must send `Access-Control-Allow-Origin` (and answer the `OPTIONS` preflight), otherwise the call never
+  reaches the service and you get the friendly **network error** screen.
 
 ## How to use it
 
 1. **First run.** With no saved configuration the app opens the **Configuration** screen.
 2. **Load a config.** Either
    - **Select anyrest.json + images** (or **Update configuration** when one is already active) → pick
-     the `.json` **and its images together** in one selection: the app copies the images into itself
-     (png/webp only, ≤ 512 KiB each), so a button that names an image (`"icon": "get.png"`, no
-     `app.iconpath`) keeps working even if the original files move; or
+     the `.json` **and its images together** in one selection, or use **Select the folder instead** on a
+     desktop browser (reads every file of the folder at once — it must contain the config and the
+     images). The app copies the images into itself (png/webp only, ≤ 512 KiB each), so a button that
+     names an image (`"icon": "get.png"`, no `app.iconpath`) keeps working even if the original files
+     move. If a named image was not selected, the preview says so and lists it. Or
    - **Load demo configuration** → loads the bundled demo (`src/assets/anyrest.demo.json`, semantically
      identical to the root [`anyrest.json`](anyrest.json)) which points at `https://httpbin.org`.
    The app parses, validates against the schema, and shows a **preview** of the buttons
@@ -193,7 +202,9 @@ not a promise.
 - **No `file://` / OS-absolute path support** for icons (web-relative, absolute `http(s)` or `data:`
   only).
 - **Success is HTTP `200` exactly.** `201`, `204`, `3xx` and every other status is shown as an error,
-  by frozen decision.
+  by frozen decision. One deliberate exception: a button carrying `"timeoutIsSuccess": true` reports a
+  **timeout** as a success — for endpoints that cannot answer because they restart the service answering
+  them (see [`docs/CONFIG-FORMAT.md`](docs/CONFIG-FORMAT.md) → *Timeout*).
 
 **Not tested / not verified in this pass:**
 
@@ -201,6 +212,9 @@ not a promise.
   (`aapt2 dump badging`), but no on-device or emulator run happened.
 - **Copying your own images was exercised in the browser only** — the multi-file selection itself was
   verified in the WebView code path (`BridgeWebChromeClient`, `MODE_OPEN_MULTIPLE`), not on a device.
+- **Native HTTP / cleartext were verified in the built artifact only** — the APK carries
+  `CapacitorHttp.enabled` and `usesCleartextTraffic="true"` (checked inside the APK), but no call has been
+  made from a device, so a real native request to a no-CORS endpoint is still unproven here.
 - **Nothing was exercised on a physical Android device or emulator** — no real-device run, no
   device file picker, no native `@capacitor/preferences` storage behaviour observed.
 - **No real-device file-picker test** — the `<input type="file">` path was exercised in the browser

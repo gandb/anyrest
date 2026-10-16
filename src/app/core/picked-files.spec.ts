@@ -8,11 +8,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   MAX_ICON_BYTES,
+  missingIconNames,
   normalizeIconDataUrl,
   readIconDataUrls,
   splitSelection,
   type PickedFile,
 } from './picked-files';
+import type { AnyRestConfig } from './types';
 
 const file = (name: string, size = 1024, type = ''): PickedFile => ({ name, size, type });
 
@@ -117,5 +119,50 @@ describe('readIconDataUrls', () => {
 
     expect(read.errors).toEqual([]);
     expect(read.icons.get('get.png')).toMatch(/^data:image\/png;base64,/);
+  });
+});
+
+describe('missingIconNames', () => {
+  const config = (icon: string | undefined, iconpath?: string): AnyRestConfig => ({
+    version: 1,
+    app: { title: 't', ...(iconpath === undefined ? {} : { iconpath }) },
+    buttons: [
+      {
+        id: 'b',
+        label: 'B',
+        ...(icon === undefined ? {} : { icon }),
+        request: { method: 'GET', url: 'https://x.test' },
+      },
+    ],
+  });
+
+  it('lists a name the selection did not bring (the reported defect)', () => {
+    expect(missingIconNames(config('media-center-restart.webp'), new Map())).toEqual([
+      'media-center-restart.webp',
+    ]);
+  });
+
+  it('stays silent for a copied image, an absolute source, no icon or an iconpath base', () => {
+    const icons = new Map([['get.png', 'data:image/png;base64,AA']]);
+
+    expect(missingIconNames(config('get.png'), icons)).toEqual([]);
+    expect(missingIconNames(config('https://cdn.test/a.png'), new Map())).toEqual([]);
+    expect(missingIconNames(config('data:image/png;base64,AA'), new Map())).toEqual([]);
+    expect(missingIconNames(config(undefined), new Map())).toEqual([]);
+    expect(missingIconNames(config('get.png', '/assets/icons'), new Map())).toEqual([]);
+  });
+
+  it('lists each missing name once, in button order', () => {
+    const two: AnyRestConfig = {
+      version: 1,
+      app: { title: 't' },
+      buttons: [
+        { id: 'a', label: 'A', icon: 'a.png', request: { method: 'GET', url: 'https://x.test' } },
+        { id: 'b', label: 'B', icon: 'b.png', request: { method: 'GET', url: 'https://x.test' } },
+        { id: 'c', label: 'C', icon: 'a.png', request: { method: 'GET', url: 'https://x.test' } },
+      ],
+    };
+
+    expect(missingIconNames(two, new Map([['b.png', 'data:image/png;base64,AA']]))).toEqual(['a.png']);
   });
 });

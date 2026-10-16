@@ -297,6 +297,17 @@ describe('ConfigPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Ignored');
   });
 
+  it('warns loudly when the configuration names an image that was not selected', async () => {
+    await page.onFileSelected(selectionEvent([jsonFile(JSON.stringify(iconConfig))]));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(page.missingIcons()).toEqual(['shapes.png']);
+    const text = fixture.nativeElement.textContent as string;
+    expect(text).toContain('were not selected');
+    expect(text).toContain('shapes.png');
+  });
+
   it('keeps the active configuration when the images cannot be saved', async () => {
     await config.activateText(JSON.stringify(validConfig));
     preferencesMock.set.mockClear();
@@ -312,5 +323,29 @@ describe('ConfigPage', () => {
     expect(page.issues()[0].message).toContain('could not be saved');
     expect(config.active()).toEqual(validConfig);
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('takes a folder selection: every file in the folder, paths relative to it', async () => {
+    const json = new File([JSON.stringify(iconConfig)], 'anyrest.json', { type: 'application/json' });
+    const image = new File([new Uint8Array(8)], 'shapes.png', { type: 'image/png' });
+    Object.defineProperty(json, 'webkitRelativePath', { value: 'anyrest/anyrest.json' });
+    Object.defineProperty(image, 'webkitRelativePath', { value: 'anyrest/shapes.png' });
+
+    await page.onFileSelected(selectionEvent([json, image]));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(page.preview()).toEqual(iconConfig);
+    expect(page.missingIcons()).toEqual([]);
+    expect(page.pendingIcons().get('shapes.png')).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('offers a folder picker next to the file selection', () => {
+    const inputs = fixture.nativeElement.querySelectorAll(
+      'input[type=file]',
+    ) as NodeListOf<HTMLInputElement>;
+
+    expect(inputs.length).toBe(2);
+    expect(inputs[1].hasAttribute('webkitdirectory')).toBe(true);
   });
 });

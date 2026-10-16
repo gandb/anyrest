@@ -36,9 +36,11 @@
       class="file-input"
       type="file"
       multiple
-      accept=".json,application/json,image/png,image/webp"
       (change)="onFileSelected($event)"
     />
+    <!-- No `accept` filter on purpose: on some pickers a type filter hides the
+         very images that must be selected with the configuration. The app
+         classifies what it got and lists anything it ignored. -->
     <ion-button expand="block" size="large" [disabled]="busy()" (click)="picker.click()">
       <ion-icon slot="start" name="document-outline"></ion-icon>
       @if (config.isConfigured$ | async) {
@@ -47,6 +49,30 @@
         Select anyrest.json + images
       }
     </ion-button>
+
+    <input
+      #folderPicker
+      class="file-input"
+      type="file"
+      webkitdirectory
+      multiple
+      (change)="onFileSelected($event)"
+    />
+    <ion-button
+      expand="block"
+      size="large"
+      fill="outline"
+      [disabled]="busy()"
+      (click)="folderPicker.click()"
+    >
+      <ion-icon slot="start" name="folder-open-outline"></ion-icon>
+      Select the folder instead
+    </ion-button>
+    <p class="copy-note">
+      The folder must contain the <code>anyrest.json</code> and its images. On a desktop browser the whole
+      folder is read at once; on Android, if your picker offers no folder option, use the button above and
+      select the configuration and the images together.
+    </p>
     <ion-button
       expand="block"
       size="large"
@@ -86,10 +112,27 @@
           @if (pendingIcons().size > 0) {
             {{ pendingIcons().size }} image(s) will be copied into the app with this configuration.
           } @else {
-            No images in this selection — icons that are not a full URL show the fallback tile.
+            No images in this selection.
           }
         </p>
       </header>
+
+      @if (missingIcons().length > 0) {
+        <section class="missing" role="alert">
+          <p class="missing-summary">
+            {{ missingIcons().length }} image(s) named in this configuration were not selected — those
+            rows will show the initials instead of the image:
+          </p>
+          <ul class="missing-list">
+            @for (name of missingIcons(); track name) {
+              <li><code>{{ name }}</code></li>
+            }
+          </ul>
+          <p class="missing-note">
+            Select them together with the anyrest.json file in the same selection, then confirm.
+          </p>
+        </section>
+      }
 
       @if (candidate.buttons.length === 0) {
         <p class="preview-empty">

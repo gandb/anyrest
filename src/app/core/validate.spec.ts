@@ -10,6 +10,30 @@ function paths(result: ValidationResult): string[] {
   return result.errors.map((issue) => issue.path);
 }
 
+describe('timeoutIsSuccess (SPEC §3.3 amendment)', () => {
+  const withRequest = (request: Record<string, unknown>): Record<string, unknown> =>
+    configWith({
+      buttons: [
+        { id: 'b', label: 'B', request: { method: 'GET', url: 'https://x.test', ...request } },
+      ],
+    });
+
+  it('accepts true, false and absence', () => {
+    expect(validateConfig(withRequest({ timeoutIsSuccess: true })).ok).toBe(true);
+    expect(validateConfig(withRequest({ timeoutIsSuccess: false })).ok).toBe(true);
+    expect(validateConfig(withRequest({})).ok).toBe(true);
+  });
+
+  it('rejects a value that is not a boolean, naming the path', () => {
+    const result = validateConfig(withRequest({ timeoutIsSuccess: 'yes' }));
+
+    expect(result.ok).toBe(false);
+    expect(paths(result)).toContain('buttons[0].request.timeoutIsSuccess');
+    const issue = result.errors.find((e) => e.path === 'buttons[0].request.timeoutIsSuccess');
+    expect(issue?.message).toContain('true or false');
+  });
+});
+
 const fullConfig: AnyRestConfig = {
   version: 1,
   app: { title: 'AnyRest', description: 'demo', iconpath: '/assets/icons' },

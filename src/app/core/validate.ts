@@ -18,7 +18,15 @@ const MAX_URL_LENGTH = 2048;
 const ROOT_KEYS = ['version', 'app', 'buttons'] as const;
 const APP_KEYS = ['title', 'description', 'iconpath'] as const;
 const BUTTON_KEYS = ['id', 'label', 'description', 'icon', 'request', 'response'] as const;
-const REQUEST_KEYS = ['method', 'url', 'headers', 'queryParams', 'body', 'timeoutMs'] as const;
+const REQUEST_KEYS = [
+  'method',
+  'url',
+  'headers',
+  'queryParams',
+  'body',
+  'timeoutMs',
+  'timeoutIsSuccess',
+] as const;
 const RESPONSE_KEYS = ['display', 'successMessage', 'errorMessage'] as const;
 
 type JsonObject = Record<string, unknown>;
@@ -182,6 +190,12 @@ function validateTimeoutMs(value: unknown, path: string, issues: IssueCollector)
   }
 }
 
+function validateTimeoutIsSuccess(value: unknown, path: string, issues: IssueCollector): void {
+  if (value !== undefined && typeof value !== 'boolean') {
+    issues.add(path, '"timeoutIsSuccess" must be true or false.');
+  }
+}
+
 function validateRequest(value: unknown, buttonPath: string, issues: IssueCollector): void {
   const path = childPath(buttonPath, 'request');
   if (value === undefined) {
@@ -221,6 +235,11 @@ function validateRequest(value: unknown, buttonPath: string, issues: IssueCollec
   validateStringMap(value['queryParams'], childPath(path, 'queryParams'), issues);
   validateBody(value['body'], childPath(path, 'body'), issues);
   validateTimeoutMs(value['timeoutMs'], childPath(path, 'timeoutMs'), issues);
+  validateTimeoutIsSuccess(
+    value['timeoutIsSuccess'],
+    childPath(path, 'timeoutIsSuccess'),
+    issues,
+  );
 }
 
 function validateResponse(value: unknown, buttonPath: string, issues: IssueCollector): void {

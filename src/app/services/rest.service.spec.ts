@@ -122,6 +122,28 @@ describe('RestService', () => {
     httpMock.verify();
   });
 
+  it('counts a timeout as success when the configuration asks for it (§3.3 amendment)', async () => {
+    const pending = collect(
+      service.execute({
+        method: 'POST',
+        url: 'https://example.com/restart',
+        timeoutMs: 1000,
+        timeoutIsSuccess: true,
+      })
+    );
+    httpMock.expectOne('https://example.com/restart');
+
+    const outcome = await pending;
+
+    expect(outcome.ok).toBe(true);
+    expect(outcome.kind).toBe('timeout');
+    expect(outcome.status).toBeUndefined();
+    expect(outcome.message).toBe(
+      'Request timed out after 1000 ms — counted as success (timeoutIsSuccess).',
+    );
+    httpMock.verify();
+  });
+
   it('applies the clamped timeout (below the minimum is raised to 1000 ms)', async () => {
     const pending = collect(
       service.execute({ method: 'GET', url: 'https://example.com/slow', timeoutMs: 5 })

@@ -27,6 +27,13 @@ export interface RequestConfig {
   /** object | array | string — static in v1, no placeholders (SPEC §3.4). */
   body?: Record<string, unknown> | unknown[] | string;
   timeoutMs?: number;
+  /**
+   * SPEC §3.3 amendment: `true` counts a timeout as a success. Meant for
+   * fire-and-forget endpoints (restart, reboot) that cannot answer because the
+   * service answering is the one being restarted. Absent = a timeout keeps
+   * meaning failure, exactly as before.
+   */
+  timeoutIsSuccess?: boolean;
 }
 
 export interface ButtonConfig {

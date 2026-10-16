@@ -124,6 +124,31 @@
   color: var(--ion-color-medium, #5b6472);
 }
 
+.missing {
+  margin: 1rem 0 0;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--ion-color-warning, #b8860b);
+  border-radius: 10px;
+  background: var(--ion-color-warning-tint, #fff8e1);
+}
+
+.missing-summary {
+  margin: 0;
+  font-weight: 700;
+}
+
+.missing-list {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.missing-note {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium, #5b6472);
+}
+
 .rows {
   list-style: none;
   margin: 1rem 0;

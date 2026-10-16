@@ -62,15 +62,22 @@ export class ResultModalComponent {
   readonly button = input<ButtonConfig | null>(null);
   readonly dismiss = output<void>();
 
-  /** Green ONLY for HTTP 200 (frozen status rule); every other outcome is red. */
-  protected readonly success = computed(
-    () => this.outcome().ok && classifyStatus(this.outcome().status ?? 0) === 'success',
-  );
+  /**
+   * Green for HTTP 200 (frozen status rule) and for a config-declared success that has
+   * no HTTP status at all — SPEC §3.3 amendment (`timeoutIsSuccess`).
+   */
+  protected readonly success = computed(() => {
+    const out = this.outcome();
+    return out.ok && (out.status === undefined || classifyStatus(out.status) === 'success');
+  });
 
   protected readonly heading = computed(() => `Result — ${this.statusText()}`);
 
   protected readonly statusText = computed(() => {
     const out = this.outcome();
+    if (out.ok && out.kind === 'timeout') {
+      return 'Timeout — counted as success';
+    }
     if (out.ok) {
       return 'HTTP 200 — Success';
     }
@@ -88,7 +95,7 @@ export class ResultModalComponent {
     const out = this.outcome();
     const response = this.button()?.response;
     if (out.ok) {
-      return response?.successMessage ?? 'Request succeeded (HTTP 200).';
+      return response?.successMessage ?? out.message ?? 'Request succeeded (HTTP 200).';
     }
     return response?.errorMessage ?? out.message ?? 'The request failed.';
   });
