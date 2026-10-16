@@ -9,6 +9,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **SonarQube:**   integrated with  Sonarqube
 - **`any-rest.apk` at the repository root**: `build.sh` now drops a copy of the debug APK under the
   distribution name (the gradle output `android/app/build/outputs/apk/debug/app-debug.apk` is left
   untouched, so anything expecting it keeps working). Same bytes — compared with `sha256sum`.
@@ -164,10 +165,10 @@ built with Ionic + Angular + TypeScript.
 
 Executed on this machine (Node v24.15.0, npm 11.12.1):
 
-| Command | Result |
-|---|---|
-| `npm install` | exit code 0 (reports vulnerabilities; none triaged) |
-| `npm test -- --configuration ci` | exit code 0 — **12 test files / 117 tests, all passed** (Vitest 4.0.18, jsdom, ~3.6 s) |
-| `npx ng build` | exit code 0 — output in `www/`; no style-budget warning (`config.page.scss` 2.39 kB, `anyComponentStyle` warning threshold raised to 2.50 kB) |
+| Command                          | Result                                                                                                                                        |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm install`                    | exit code 0 (reports vulnerabilities; none triaged)                                                                                           |
+| `npm test -- --configuration ci` | exit code 0 — **12 test files / 117 tests, all passed** (Vitest 4.0.18, jsdom, ~3.6 s)                                                        |
+| `npx ng build`                   | exit code 0 — output in `www/`; no style-budget warning (`config.page.scss` 2.39 kB, `anyComponentStyle` warning threshold raised to 2.50 kB) |
 
 Not executed here: `npx ng serve`, `npx cap sync android`, `cd android && ./gradlew assembleDebug`.
