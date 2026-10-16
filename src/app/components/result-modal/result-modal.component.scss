@@ -112,7 +112,8 @@
 }
 
 .foot {
-  padding: 0 1.1rem 1.1rem;
+  /* Room for the Android system navigation bar (edge-to-edge since SDK 35). */
+  padding: 0 1.1rem calc(1.1rem + var(--app-safe-bottom, 0px));
 }
 
 @media (min-width: 768px) {

@@ -90,7 +90,8 @@ npx cap sync android
 cd android && ./gradlew assembleDebug
 ```
 
-The result is `android/app/build/outputs/apk/debug/app-debug.apk`.
+The result is `android/app/build/outputs/apk/debug/app-debug.apk`; `build.sh` also drops a copy under the
+distribution name at the repository root — **`any-rest.apk`** (same bytes, compared with `sha256sum`).
 
 > **EXECUTED 2026-10-16:** `./build.sh` finished with exit code 0; Gradle reported
 > `BUILD SUCCESSFUL in 1m 31s` (243 tasks). APK produced:
@@ -117,12 +118,13 @@ The result is `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 1. **First run.** With no saved configuration the app opens the **Configuration** screen.
 2. **Load a config.** Either
-   - **Select anyrest.json + images** (or **Update configuration** when one is already active) → pick
-     the `.json` **and its images together** in one selection, or use **Select the folder instead** on a
-     desktop browser (reads every file of the folder at once — it must contain the config and the
-     images). The app copies the images into itself (png/webp only, ≤ 512 KiB each), so a button that
-     names an image (`"icon": "get.png"`, no `app.iconpath`) keeps working even if the original files
-     move. If a named image was not selected, the preview says so and lists it. Or
+   - **Select anyrest.json** (or **Update configuration** when one is already active) → pick the `.json`;
+     then **Add images** for each image you need — **one at a time is fine**, the app keeps every image you
+     add (the list of what is ready is shown, with **Clear images**). A multi-file pick or, on a desktop
+     browser, **Select the folder instead** also works. The app copies the images into itself
+     (png/webp only, ≤ 512 KiB each), so a button that names an image (`"icon": "get.png"`, no
+     `app.iconpath`) keeps working even if the original files move. If a named image was not added, the
+     preview says so and lists it. Or
    - **Load demo configuration** → loads the bundled demo (`src/assets/anyrest.demo.json`, semantically
      identical to the root [`anyrest.json`](anyrest.json)) which points at `https://httpbin.org`.
    The app parses, validates against the schema, and shows a **preview** of the buttons
@@ -215,6 +217,10 @@ not a promise.
 - **Native HTTP / cleartext were verified in the built artifact only** — the APK carries
   `CapacitorHttp.enabled` and `usesCleartextTraffic="true"` (checked inside the APK), but no call has been
   made from a device, so a real native request to a no-CORS endpoint is still unproven here.
+- **The bottom safe-area fix was verified through the CSS variable, not on a device** — with
+  `--app-safe-bottom` forced to 48 px, the configuration page's scroll padding becomes 72 px and the result
+  modal's footer 65.6 px (measured, both before/after); the real `env(safe-area-inset-bottom)` value only
+  exists on the phone.
 - **Nothing was exercised on a physical Android device or emulator** — no real-device run, no
   device file picker, no native `@capacitor/preferences` storage behaviour observed.
 - **No real-device file-picker test** — the `<input type="file">` path was exercised in the browser

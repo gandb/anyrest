@@ -41,6 +41,13 @@ export class IconStoreService {
   /** Single shared promise so `load()` never reads storage twice. */
   private loadPromise: Promise<ReadonlyMap<string, string>> | null = null;
 
+  /**
+   * Bumped on every write. An initial read that resolves *after* a write must not
+   * clobber it — measured: the preview showed the image while the list did not,
+   * because the read that started at app boot landed after the confirmation.
+   */
+  private revision = 0;
+
   /** Reactive view of the copied icons (empty until `load()` resolves). */
   readonly stored = this.icons.asReadonly();
 
@@ -67,6 +74,7 @@ export class IconStoreService {
     } catch {
       return false;
     }
+    this.revision += 1;
     this.icons.set(new Map(entries));
     return true;
   }
@@ -77,12 +85,19 @@ export class IconStoreService {
   }
 
   private async read(): Promise<ReadonlyMap<string, string>> {
+    const startedAt = this.revision;
     let stored: string | null = null;
     try {
       const result = await Preferences.get({ key: ICON_STORE_KEY });
       stored = result?.value ?? null;
     } catch {
-      this.icons.set(new Map());
+      if (this.revision === startedAt) {
+        this.icons.set(new Map());
+      }
+      return this.icons();
+    }
+    // A write that landed while this read was in flight wins — never clobber it.
+    if (this.revision !== startedAt) {
       return this.icons();
     }
     this.icons.set(parseIconStore(stored));

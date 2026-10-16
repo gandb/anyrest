@@ -270,7 +270,7 @@ describe('ConfigPage', () => {
     expect(preferencesMock.set).not.toHaveBeenCalled();
   });
 
-  it('refuses an oversized or empty image and names the file', async () => {
+  it('refuses an oversized image and an unreadable one, naming the file', async () => {
     await page.onFileSelected(
       selectionEvent([jsonFile(JSON.stringify(iconConfig)), pngFile('huge.png', 600 * 1024)]),
     );
@@ -282,7 +282,9 @@ describe('ConfigPage', () => {
 
     await page.onFileSelected(selectionEvent([jsonFile(), pngFile('empty.png', 0)]));
 
-    expect(page.issues()).toEqual([{ path: 'empty.png', message: 'The image is empty.' }]);
+    expect(page.issues()).toEqual([
+      { path: 'empty.png', message: 'The image could not be read as png or webp.' },
+    ]);
   });
 
   it('lists files that are neither the configuration nor png/webp', async () => {
@@ -340,12 +342,63 @@ describe('ConfigPage', () => {
     expect(page.pendingIcons().get('shapes.png')).toMatch(/^data:image\/png;base64,/);
   });
 
-  it('offers a folder picker next to the file selection', () => {
+  it('offers the configuration, image and folder pickers', () => {
     const inputs = fixture.nativeElement.querySelectorAll(
       'input[type=file]',
     ) as NodeListOf<HTMLInputElement>;
 
-    expect(inputs.length).toBe(2);
-    expect(inputs[1].hasAttribute('webkitdirectory')).toBe(true);
+    expect(inputs.length).toBe(3);
+    expect(inputs[1].getAttribute('accept')).toContain('image/png');
+    expect(inputs[2].hasAttribute('webkitdirectory')).toBe(true);
+  });
+
+  it('collects images one pick at a time, after the configuration (Android picker)', async () => {
+    // O seletor do Android entrega um ficheiro por escolha: primeiro o json...
+    await page.onFileSelected(selectionEvent([jsonFile(JSON.stringify(iconConfig))]));
+
+    expect(page.preview()).toEqual(iconConfig);
+    expect(page.missingIcons()).toEqual(['shapes.png']);
+
+    // ...e depois as imagens, uma de cada vez, sem perder o que já veio.
+    await page.onImagesSelected(selectionEvent([pngFile('shapes.png')]));
+
+    expect(page.missingIcons()).toEqual([]);
+    expect(page.pendingIconNames()).toEqual(['shapes.png']);
+    const copied = page.pendingIcons().get('shapes.png');
+
+    await page.confirm();
+
+    expect(preferencesMock.set).toHaveBeenCalledWith({
+      key: 'anyrest:icons',
+      value: JSON.stringify({ 'shapes.png': copied }),
+    });
+    expect(iconStore.get('shapes.png')).toBe(copied);
+    expect(config.active()).toEqual(iconConfig);
+  });
+
+  it('accumulates image picks, replaces a repeated name, and can clear them', async () => {
+    await page.onFileSelected(selectionEvent([jsonFile(JSON.stringify(iconConfig))]));
+
+    await page.onImagesSelected(selectionEvent([pngFile('shapes.png')]));
+    await page.onImagesSelected(selectionEvent([pngFile('extra.webp')]));
+    expect(page.pendingIconNames()).toEqual(['shapes.png', 'extra.webp']);
+
+    await page.onImagesSelected(selectionEvent([pngFile('shapes.png', 16)]));
+    expect(page.pendingIconNames()).toEqual(['shapes.png', 'extra.webp']);
+
+    page.clearImages();
+    expect(page.pendingIconNames()).toEqual([]);
+  });
+
+  it('reports an image pick that brought nothing usable', async () => {
+    await page.onFileSelected(selectionEvent([jsonFile(JSON.stringify(iconConfig))]));
+    const notes = new File(['x'], 'notes.txt', { type: 'text/plain' });
+
+    await page.onImagesSelected(selectionEvent([notes]));
+
+    expect(page.issues()).toEqual([
+      { path: '$', message: 'No png or webp image was selected.' },
+    ]);
+    expect(page.pendingIconNames()).toEqual([]);
   });
 });

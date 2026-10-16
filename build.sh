@@ -164,3 +164,9 @@ fi
 
 SIZE="$(du -h "$APK" | cut -f1)"
 log "DONE. APK ready: $APK ($SIZE)"
+
+# A copy under the distribution name, at the repository root. The gradle output is
+# left untouched so anything expecting app-debug.apk keeps working.
+DIST="$ROOT/any-rest.apk"
+cp -f "$APK" "$DIST" || fail "could not copy the APK to $DIST."
+log "copy for distribution: $DIST ($SIZE)"

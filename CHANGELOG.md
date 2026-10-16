@@ -9,6 +9,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Added
 
+- **`any-rest.apk` at the repository root**: `build.sh` now drops a copy of the debug APK under the
+  distribution name (the gradle output `android/app/build/outputs/apk/debug/app-debug.apk` is left
+  untouched, so anything expecting it keeps working). Same bytes — compared with `sha256sum`.
+- **Add images one at a time**: the Android picker hands over a single file per pick and closes, so the
+  images of a configuration are now **accumulated** instead of requiring one multi-file selection: pick
+  the `anyrest.json`, then **Add images** for each image (the screen lists what is ready, with
+  **Clear images**); a multi-file or folder pick still works where the platform offers it.
 - **`"timeoutIsSuccess": true`** (optional, per button, in `request`): counts a **timeout as a success**.
   It exists for fire-and-forget endpoints — restart, reboot — that can never answer, because the process
   answering is the one being restarted: the modal goes green reading `Timeout — counted as success` with
@@ -42,6 +49,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Fixed
 
+- **Buttons hidden under the Android system navigation bar.** The APK targets SDK 36, and Android 15+ runs
+  such apps edge-to-edge, painting the navigation bar *over* the bottom of the page: in portrait the
+  **Confirm and save** button and the result modal's **Close** button could not be tapped (they were under
+  the bar; in landscape the bar moves and they became reachable). The layout now reserves the bottom safe
+  area (`env(safe-area-inset-bottom)`), exposed as `--app-safe-bottom` so it can be exercised without a device.
 - An image copied into the app was ignored whenever the configuration carried `app.iconpath`: a button
   naming that image still showed the fallback tile, because the iconpath was joined instead of using
   the copied image. The copied image now wins for any name present in the copied set; `app.iconpath`

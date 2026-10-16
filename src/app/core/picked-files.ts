@@ -71,11 +71,29 @@ const isIconFile = (f: PickedFile): boolean =>
 
 const asMb = (bytes: number): string => `${Math.round((bytes / 1024 / 1024) * 10) / 10} MB`;
 
+/** Names the user added that no button of this configuration references. */
+export function unusedIconNames(
+  config: AnyRestConfig,
+  icons: ReadonlyMap<string, string>,
+): string[] {
+  const named = new Set<string>();
+  for (const button of config.buttons) {
+    const name = button.icon?.trim() ?? '';
+    if (name !== '' && !ABSOLUTE_ICON.test(name)) {
+      named.add(name);
+    }
+  }
+  return [...icons.keys()].filter((name) => !named.has(name));
+}
+
 /**
- * Splits a selection into the configuration, the icons to copy and what was
- * ignored, collecting the blocking problems along the way.
+ * Classifies the icon files of a selection: the allowed images to copy, the files
+ * to ignore, and the blocking problems. The configuration file is neither an icon
+ * nor "ignored" — it is simply not this function's business.
  */
-export function splitSelection<T extends PickedFile>(files: readonly T[]): SelectionSplit<T> {
+export function classifyImages<T extends PickedFile>(
+  files: readonly T[],
+): { images: T[]; ignored: string[]; errors: ValidationIssue[] } {
   const errors: ValidationIssue[] = [];
   const ignored: string[] = [];
   const images: T[] = [];
@@ -89,15 +107,14 @@ export function splitSelection<T extends PickedFile>(files: readonly T[]): Selec
       ignored.push(file.name);
       continue;
     }
+    // Fast path only: a picker may report no size at all (0) for a perfectly good
+    // file — common with Android `content://` URIs — so the real limit is enforced
+    // on the decoded payload when the image is read (see readIconDataUrls).
     if (file.size > MAX_ICON_BYTES) {
       errors.push({
         path: file.name,
         message: `The image is too large (${asMb(file.size)}); the limit is ${asMb(MAX_ICON_BYTES)} per image.`,
       });
-      continue;
-    }
-    if (file.size === 0) {
-      errors.push({ path: file.name, message: 'The image is empty.' });
       continue;
     }
     if (seen.has(file.name)) {
@@ -107,6 +124,16 @@ export function splitSelection<T extends PickedFile>(files: readonly T[]): Selec
     seen.add(file.name);
     images.push(file);
   }
+
+  return { images, ignored, errors };
+}
+
+/**
+ * Splits a selection into the configuration, the icons to copy and what was
+ * ignored, collecting the blocking problems along the way.
+ */
+export function splitSelection<T extends PickedFile>(files: readonly T[]): SelectionSplit<T> {
+  const { images, ignored, errors } = classifyImages(files);
 
   const configs = files.filter(isConfigFile);
   if (configs.length === 0) {
@@ -124,14 +151,29 @@ export function splitSelection<T extends PickedFile>(files: readonly T[]): Selec
   return { config: configs.length === 1 ? configs[0] : null, images, ignored, errors };
 }
 
-/** Reads one blob as a `data:` URL; rejects when the browser cannot read it. */
+/** Base64 of raw bytes, chunked so a big image cannot blow the argument limit. */
+function base64Of(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const CHUNK = 0x8000;
+  for (let i = 0; i < bytes.length; i += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+/**
+ * Reads a blob as a `data:` URL.
+ *
+ * Deliberately NOT `FileReader`: on some WebViews a file that reads fine through
+ * `Blob.text()` fails in `FileReader` (`onerror`, no detail) — the asymmetry showed
+ * up as "the configuration loads but the image never does". `arrayBuffer()` uses the
+ * same path as `text()` and has no event plumbing to fail in.
+ */
 function readAsDataUrl(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = () => reject(new Error('unreadable'));
-    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
-    reader.readAsDataURL(blob);
-  });
+  return blob
+    .arrayBuffer()
+    .then((buffer) => `data:${blob.type || 'application/octet-stream'};base64,${base64Of(buffer)}`);
 }
 
 /**
@@ -161,6 +203,23 @@ export function normalizeIconDataUrl(dataUrl: string, name: string): string | nu
 }
 
 /**
+ * Bytes carried by a base64 `data:` payload. The picker's reported size is not
+ * trusted (Android may report 0), so the limit is checked against this.
+ */
+export function payloadBytes(dataUrl: string): number {
+  const comma = dataUrl.indexOf(',');
+  if (comma < 0) {
+    return 0;
+  }
+  const payload = dataUrl.slice(comma + 1);
+  if (payload === '') {
+    return 0;
+  }
+  const padding = payload.endsWith('==') ? 2 : payload.endsWith('=') ? 1 : 0;
+  return Math.max(0, Math.floor((payload.length * 3) / 4) - padding);
+}
+
+/**
  * Reads the picked icons as `data:` URLs keyed by file name. An image that
  * cannot be read or normalized is reported as an error instead of being dropped
  * silently; the caller decides whether to block the confirmation.
@@ -175,9 +234,17 @@ export async function readIconDataUrls(
       const url = normalizeIconDataUrl(await readAsDataUrl(file as unknown as Blob), file.name);
       if (url === null) {
         errors.push({ path: file.name, message: 'The image could not be read as png or webp.' });
-      } else {
-        icons.set(file.name, url);
+        continue;
       }
+      const bytes = payloadBytes(url);
+      if (bytes > MAX_ICON_BYTES) {
+        errors.push({
+          path: file.name,
+          message: `The image is too large (${asMb(bytes)}); the limit is ${asMb(MAX_ICON_BYTES)} per image.`,
+        });
+        continue;
+      }
+      icons.set(file.name, url);
     } catch {
       errors.push({ path: file.name, message: 'The image could not be read.' });
     }

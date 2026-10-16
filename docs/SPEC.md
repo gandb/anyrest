@@ -155,23 +155,26 @@ optional and keeps this meaning; it is never required for a user's own images.
 
 ### 3.1.5 Icons copied into the app (amendment, 2026-10-16)
 
-The user selects the configuration file **and its images together**, in one picker selection
-(multi-file input; the picker's temporary read grant is enough). The app copies the images into
-its own storage as `data:` URLs keyed by file name and reads them from there — no OS path, no
-`file://`, no persistent directory permission (restriction 10: a picked path is never assumed to
-stay reachable).
+The user picks the configuration file **and** its images — either in one selection, or by picking the
+configuration and then adding images **one at a time** (the Android picker hands over a single file per
+pick and closes). Images accumulate across picks; a configuration pick that also carries images replaces
+the pending set, and adding an image whose name is already present replaces that image. The app copies the
+images into its own storage as `data:` URLs keyed by file name and reads them from there — no OS path, no
+`file://`, no persistent directory permission (restriction 10: a picked path is never assumed to stay
+reachable).
 
-- The user may pick the configuration and the images as **files** (one selection, any platform) or as a
-  **folder** (`webkitdirectory`: on a desktop browser the whole folder is read at once — the folder must
-  contain the `anyrest.json` and its images). Android pickers may offer no folder option, in which case
-  the file selection above is the path. Either way the app classifies what it received and lists what
-  it ignored.
-- Exactly one `*.json` per selection (zero or several is a reported error).
+- The user may pick the configuration and the images as **files** (one or several picks, any platform) or
+  as a **folder** (`webkitdirectory`: on a desktop browser the whole folder is read at once — the folder
+  must contain the `anyrest.json` and its images). Android pickers may offer no folder option and may hand
+  over a single file per pick, which is why **accumulation** exists. Either way the app classifies what it
+  received and lists what it ignored.
+- Exactly one `*.json` per configuration pick (zero or several is a reported error).
 - Only `.png` / `.webp` images are copied; anything else is listed as ignored, never dropped silently.
 - Each image is capped at **512 KiB** (base64 in storage grows it by ~33 %); an oversized, empty or
   duplicate-named image rejects the whole selection with the file named.
-- The copied set is **replaced as a whole** when the user confirms; re-selecting
-  ("Update configuration") replaces it again. Nothing is written before the confirmation.
+- The copied set is the accumulated one: what is pending when the user confirms (a configuration pick
+  carrying images replaces it; **Add images** accumulates it; **Clear images** empties it). Nothing is
+  written before the confirmation.
 - A configuration that names an image the selection did **not** bring is surfaced as a loud warning in
   the preview, listing the names — a missing image is never a silent tile. The warning does not block
   the confirmation (the configuration is still valid); a configuration carrying `app.iconpath` is

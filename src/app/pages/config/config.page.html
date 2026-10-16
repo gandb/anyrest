@@ -8,10 +8,10 @@
   <section class="intro">
     <h1>What this app can do</h1>
     <p>
-      Pick the <code>anyrest.json</code> <strong>and its images</strong> in one selection: the app
-      copies them into itself, so the button icons keep working even if the original files move.
-      Nothing changes until you confirm, and an invalid file never replaces the configuration
-      already in use.
+      Pick the <code>anyrest.json</code>, then <strong>add its images</strong> — one at a time is fine, the
+      app keeps every image you add. It copies them into itself, so the button icons keep working even if
+      the original files move. Nothing changes until you confirm, and an invalid file never replaces the
+      configuration already in use.
     </p>
   </section>
 
@@ -46,9 +46,37 @@
       @if (config.isConfigured$ | async) {
         Update configuration
       } @else {
-        Select anyrest.json + images
+        Select anyrest.json
       }
     </ion-button>
+
+    <input
+      #imagePicker
+      class="file-input"
+      type="file"
+      multiple
+      accept="image/png,image/webp"
+      (change)="onImagesSelected($event)"
+    />
+    <ion-button
+      expand="block"
+      size="large"
+      fill="outline"
+      [disabled]="busy()"
+      (click)="imagePicker.click()"
+    >
+      <ion-icon slot="start" name="image-outline"></ion-icon>
+      Add images (png / webp)
+    </ion-button>
+
+    @if (pendingIcons().size > 0) {
+      <div class="copy-note">
+        <span>Ready to copy: {{ pendingIconNames().join(', ') }}</span>
+        <ion-button size="small" fill="clear" color="medium" [disabled]="busy()" (click)="clearImages()">
+          Clear images
+        </ion-button>
+      </div>
+    }
 
     <input
       #folderPicker
@@ -129,7 +157,25 @@
             }
           </ul>
           <p class="missing-note">
-            Select them together with the anyrest.json file in the same selection, then confirm.
+            Use <strong>Add images</strong> (one at a time is fine) or select them together with the
+            configuration, then confirm.
+          </p>
+        </section>
+      }
+
+      @if (unusedIcons().length > 0) {
+        <section class="missing" role="alert">
+          <p class="missing-summary">
+            Added, but this configuration does not name {{ unusedIcons().length === 1 ? 'it' : 'them' }}:
+          </p>
+          <ul class="missing-list">
+            @for (name of unusedIcons(); track name) {
+              <li><code>{{ name }}</code></li>
+            }
+          </ul>
+          <p class="missing-note">
+            The name in <code>"icon"</code> must match the image file name <strong>exactly</strong> —
+            check for a rename or a typo.
           </p>
         </section>
       }

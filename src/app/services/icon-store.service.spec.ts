@@ -82,6 +82,24 @@ describe('IconStoreService', () => {
     expect(store.get('a.png')).toBe('data:image/png;base64,AA');
   });
 
+  it('never lets an in-flight initial read clobber a write that landed later', async () => {
+    let release: (value: { value: string | null }) => void = () => {};
+    preferencesMock.get.mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve;
+      }),
+    );
+
+    const loading = store.load();
+    await store.replaceAll(new Map([['a.png', 'data:image/png;base64,AA']]));
+
+    release({ value: JSON.stringify({ 'old.png': 'data:image/png;base64,OLD' }) });
+    await loading;
+
+    expect(store.get('a.png')).toBe('data:image/png;base64,AA');
+    expect(store.get('old.png')).toBeUndefined();
+  });
+
   it('never throws when storage is unreadable', async () => {
     preferencesMock.get.mockRejectedValue(new Error('nope'));
 

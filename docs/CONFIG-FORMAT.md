@@ -135,12 +135,15 @@ app.
 
 ### Loading your own images
 
-On the Configuration screen, one selection takes the `anyrest.json` **and its images together**
-(multi-select), or — on a desktop browser — the whole folder at once (**Select the folder instead**,
-`webkitdirectory`). The app copies the images into itself, so they keep working even if the original
-files move; a later selection replaces the previous set as a whole.
+On the Configuration screen: pick the `anyrest.json`, then **add the images**. Every pick adds to the set —
+**one file at a time is fine** (the Android picker hands over a single file per pick and closes), and a
+multi-file selection or the whole folder (**Select the folder instead** on a desktop browser) works too.
+The app copies the images into itself on confirmation, so they keep working even if the original files
+move.
 
-- Exactly one `*.json` per selection.
+- Exactly one `*.json` per configuration pick.
+- A configuration pick that also carries images **replaces** the pending set; **Add images** afterwards
+  **accumulates** it (a repeated name replaces that image). **Clear images** starts the set over.
 - Only `.png` / `.webp`, at most **512 KiB** each. Anything else is listed as ignored; an oversized,
   empty or duplicate-named image rejects the selection and names the file.
 - Nothing is stored until you confirm; the same button ("Update configuration") re-selects later.

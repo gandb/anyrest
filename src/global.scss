@@ -25,6 +25,17 @@
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
+/*
+ * Android 15+ runs the app edge-to-edge (the APK targets SDK 36), so the system
+ * navigation bar is painted OVER the bottom of the page. Without room for it, the
+ * last action of a screen (Confirm and save) and the result modal's Close button
+ * sit underneath the bar and cannot be tapped in portrait. Exposed as a variable
+ * so the layout can be exercised without a device.
+ */
+:root {
+  --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /**
  * Ionic Dark Mode
  * -----------------------------------------------------

@@ -8,10 +8,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   MAX_ICON_BYTES,
+  classifyImages,
   missingIconNames,
   normalizeIconDataUrl,
+  payloadBytes,
   readIconDataUrls,
   splitSelection,
+  unusedIconNames,
   type PickedFile,
 } from './picked-files';
 import type { AnyRestConfig } from './types';
@@ -48,15 +51,19 @@ describe('splitSelection', () => {
     ).toEqual([{ path: '$', message: 'Select exactly one anyrest.json file — 2 were selected.' }]);
   });
 
-  it('reports an image above the limit and one with no bytes', () => {
+  it('reports an image the picker itself reports as bigger than the limit', () => {
     const tooLarge = splitSelection([file('anyrest.json'), file('huge.png', MAX_ICON_BYTES + 1)]);
+
     expect(tooLarge.images).toEqual([]);
     expect(tooLarge.errors[0].path).toBe('huge.png');
     expect(tooLarge.errors[0].message).toContain('too large');
+  });
 
-    expect(splitSelection([file('anyrest.json'), file('empty.png', 0)]).errors).toEqual([
-      { path: 'empty.png', message: 'The image is empty.' },
-    ]);
+  it('keeps an image the picker reported with size 0 (Android content:// URIs)', () => {
+    const split = splitSelection([file('anyrest.json'), file('get.png', 0, 'image/png')]);
+
+    expect(split.errors).toEqual([]);
+    expect(split.images.map((i) => i.name)).toEqual(['get.png']);
   });
 
   it('reports two images that share a name', () => {
@@ -120,6 +127,59 @@ describe('readIconDataUrls', () => {
     expect(read.errors).toEqual([]);
     expect(read.icons.get('get.png')).toMatch(/^data:image\/png;base64,/);
   });
+
+  it('reads an image whose reported size is 0 and rejects a truly unreadable one', async () => {
+    const noSize = new File([new Uint8Array([1, 2, 3])], 'get.png', { type: 'image/png' });
+    Object.defineProperty(noSize, 'size', { value: 0 });
+
+    const read = await readIconDataUrls([noSize]);
+    expect(read.errors).toEqual([]);
+    expect(read.icons.get('get.png')).toMatch(/^data:image\/png;base64,/);
+
+    const empty = new File([], 'empty.png', { type: 'image/png' });
+    const bad = await readIconDataUrls([empty]);
+    expect(bad.icons.size).toBe(0);
+    expect(bad.errors[0].message).toContain('could not be read');
+  });
+
+  it('enforces the size limit on the decoded bytes even when the size is hidden', async () => {
+    const big = new File([new Uint8Array(MAX_ICON_BYTES + 1024)], 'big.png', { type: 'image/png' });
+    Object.defineProperty(big, 'size', { value: 0 });
+
+    const read = await readIconDataUrls([big]);
+
+    expect(read.icons.size).toBe(0);
+    expect(read.errors[0].message).toContain('too large');
+  });
+});
+
+describe('payloadBytes', () => {
+  it('measures the decoded payload', () => {
+    expect(payloadBytes('data:image/png;base64,AAAA')).toBe(3);
+    expect(payloadBytes('data:image/png;base64,AAA=')).toBe(2);
+    expect(payloadBytes('data:image/png;base64,')).toBe(0);
+    expect(payloadBytes('not-a-data-url')).toBe(0);
+  });
+});
+
+describe('classifyImages', () => {
+  it('classifies images without requiring a configuration', () => {
+    const result = classifyImages([
+      file('get.png', 2048, 'image/png'),
+      file('notes.txt', 5, 'text/plain'),
+    ]);
+
+    expect(result.errors).toEqual([]);
+    expect(result.images.map((i) => i.name)).toEqual(['get.png']);
+    expect(result.ignored).toEqual(['notes.txt']);
+  });
+
+  it('still reports an oversized image and a repeated name', () => {
+    expect(classifyImages([file('huge.png', MAX_ICON_BYTES + 1)]).errors[0].path).toBe('huge.png');
+    expect(classifyImages([file('a.png'), file('a.png')]).errors).toEqual([
+      { path: 'a.png', message: 'Two selected images share this name.' },
+    ]);
+  });
 });
 
 describe('missingIconNames', () => {
@@ -152,8 +212,7 @@ describe('missingIconNames', () => {
     expect(missingIconNames(config('get.png', '/assets/icons'), new Map())).toEqual([]);
   });
 
-  it('lists each missing name once, in button order', () => {
-    const two: AnyRestConfig = {
+  it('lists each missing name once, in button order', () => {    const two: AnyRestConfig = {
       version: 1,
       app: { title: 't' },
       buttons: [
@@ -164,5 +223,27 @@ describe('missingIconNames', () => {
     };
 
     expect(missingIconNames(two, new Map([['b.png', 'data:image/png;base64,AA']]))).toEqual(['a.png']);
+  });
+});
+
+describe('unusedIconNames', () => {
+  const config = (icon: string): AnyRestConfig => ({
+    version: 1,
+    app: { title: 't' },
+    buttons: [{ id: 'b', label: 'B', icon, request: { method: 'GET', url: 'https://x.test' } }],
+  });
+
+  it('lists the added images no button names — the rename mismatch', () => {
+    const icons = new Map([
+      ['restart.webp', 'data:image/webp;base64,AA'],
+      ['extra.png', 'data:image/png;base64,BB'],
+    ]);
+
+    expect(unusedIconNames(config('media-center-restart.webp'), icons)).toEqual([
+      'restart.webp',
+      'extra.png',
+    ]);
+    expect(unusedIconNames(config('restart.webp'), icons)).toEqual(['extra.png']);
+    expect(unusedIconNames(config('restart.webp'), new Map())).toEqual([]);
   });
 });

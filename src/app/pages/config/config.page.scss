@@ -3,6 +3,12 @@
   display: block;
 }
 
+/* The system navigation bar overlays the bottom of the page: without this padding
+   the Confirm and save button cannot be scrolled out from under it (portrait). */
+ion-content {
+  --padding-bottom: calc(16px + var(--app-safe-bottom, 0px) + 0.5rem);
+}
+
 .intro h1 {
   margin: 0 0 0.35rem;
   font-size: 1.25rem;

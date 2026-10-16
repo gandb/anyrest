@@ -24,9 +24,16 @@ import {
   cloudDownloadOutline,
   documentOutline,
   folderOpenOutline,
+  imageOutline,
 } from 'ionicons/icons';
 import { ButtonIconComponent } from '../../components/button-icon/button-icon.component';
-import { missingIconNames, readIconDataUrls, splitSelection } from '../../core/picked-files';
+import {
+  classifyImages,
+  missingIconNames,
+  readIconDataUrls,
+  splitSelection,
+  unusedIconNames,
+} from '../../core/picked-files';
 import type { AnyRestConfig, ValidationIssue } from '../../core/types';
 import { validateConfig } from '../../core/validate';
 import { ConfigService } from '../../services/config.service';
@@ -59,6 +66,9 @@ export class ConfigPage {
   /** Icons read from the last selection, copied into the app on confirmation. */
   readonly pendingIcons = signal<ReadonlyMap<string, string>>(new Map());
 
+  /** Names of the images collected so far, for the screen to show them. */
+  readonly pendingIconNames = computed(() => [...this.pendingIcons().keys()]);
+
   /** Names of picked files that are neither the configuration nor an allowed icon. */
   readonly ignoredFiles = signal<readonly string[]>([]);
 
@@ -71,6 +81,15 @@ export class ConfigPage {
     return candidate === null ? [] : missingIconNames(candidate, this.pendingIcons());
   });
 
+  /**
+   * Images the user added that this configuration never names — the classic
+   * rename mismatch (`restart.webp` added, `media-center-restart.webp` asked for).
+   */
+  readonly unusedIcons = computed(() => {
+    const candidate = this.preview();
+    return candidate === null ? [] : unusedIconNames(candidate, this.pendingIcons());
+  });
+
   /** Issues of the last unsuccessful attempt; empty when there is none. */
   readonly issues = signal<readonly ValidationIssue[]>([]);
 
@@ -81,7 +100,14 @@ export class ConfigPage {
   readonly busy = signal(false);
 
   constructor() {
-    addIcons({ checkmarkOutline, closeOutline, cloudDownloadOutline, documentOutline, folderOpenOutline });
+    addIcons({
+      checkmarkOutline,
+      closeOutline,
+      cloudDownloadOutline,
+      documentOutline,
+      folderOpenOutline,
+      imageOutline,
+    });
   }
 
   /**
@@ -98,7 +124,6 @@ export class ConfigPage {
     this.busy.set(true);
     try {
       this.preview.set(null);
-      this.pendingIcons.set(new Map());
       const split = splitSelection(files);
       this.ignoredFiles.set(split.ignored);
       if (split.config === null || split.errors.length > 0) {
@@ -111,17 +136,69 @@ export class ConfigPage {
         this.issues.set(read.errors);
         return;
       }
-      this.pendingIcons.set(read.icons);
+      // A selection that brings images replaces the pending set. A configuration-only
+      // pick — the norm on Android, where the picker hands over one file and closes —
+      // keeps whatever "Add images" already collected (SPEC §3.1.5).
+      if (read.icons.size > 0) {
+        this.pendingIcons.set(read.icons);
+      }
       this.review(text);
     } catch {
       this.issues.set([{ path: '$', message: 'The selected files could not be read.' }]);
       this.preview.set(null);
-      this.pendingIcons.set(new Map());
     } finally {
       this.busy.set(false);
       // Lets the same files be picked again after an invalid attempt.
       input.value = '';
     }
+  }
+
+  /**
+   * Adds images to the set that will be copied on confirmation (SPEC §3.1.5).
+   * The Android picker takes one file per pick, so the set is built by
+   * accumulation — multi-selection is a convenience, never a requirement.
+   */
+  async onImagesSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const files = Array.from(input.files ?? []);
+    if (files.length === 0) {
+      return;
+    }
+    this.busy.set(true);
+    try {
+      const { images, ignored, errors } = classifyImages(files);
+      if (errors.length > 0) {
+        this.issues.set(errors);
+        return;
+      }
+      const read = await readIconDataUrls(images);
+      if (read.errors.length > 0) {
+        this.issues.set(read.errors);
+        return;
+      }
+      if (read.icons.size === 0) {
+        this.issues.set([{ path: '$', message: 'No png or webp image was selected.' }]);
+        return;
+      }
+      const merged = new Map(this.pendingIcons());
+      for (const [name, data] of read.icons) {
+        merged.set(name, data);
+      }
+      this.pendingIcons.set(merged);
+      this.ignoredFiles.set([...new Set([...this.ignoredFiles(), ...ignored])]);
+      this.issues.set([]);
+    } catch {
+      this.issues.set([{ path: '$', message: 'The selected files could not be read.' }]);
+    } finally {
+      this.busy.set(false);
+      input.value = '';
+    }
+  }
+
+  /** Forgets the images collected so far (they are copied only on confirmation). */
+  clearImages(): void {
+    this.pendingIcons.set(new Map());
+    this.issues.set([]);
   }
 
   /** Loads and activates the bundled demo (SPEC §6 demo reset), then opens home. */
