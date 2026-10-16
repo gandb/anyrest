@@ -1,0 +1,7 @@
+{
+  "name": "anyrest-scaffold",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}

@@ -1,0 +1,191 @@
+:host {
+  --accent: var(--ion-color-primary, #2b6cb0);
+  display: block;
+}
+
+.intro h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.intro p {
+  margin: 0 0 1.25rem;
+  color: var(--ion-color-medium, #5b6472);
+  line-height: 1.45;
+}
+
+.intro code,
+.issues-list code {
+  font-family: 'SFMono-Regular', ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  padding: 0.1em 0.35em;
+  border-radius: 6px;
+  background: rgba(43, 108, 176, 0.1);
+}
+
+.file-input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.actions ion-button {
+  margin: 0;
+}
+
+.issues {
+  margin: 1.25rem 0;
+  padding: 0.9rem 1rem 0.6rem;
+  border-inline-start: 4px solid var(--ion-color-danger, #c53030);
+  border-radius: 12px;
+  background: rgba(197, 48, 48, 0.08);
+}
+
+.issues-summary {
+  margin: 0 0 0.6rem;
+  font-weight: 700;
+  color: var(--ion-color-danger, #c53030);
+}
+
+.issues-list {
+  margin: 0;
+  padding-inline-start: 1.1rem;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.issues-list li {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.issues-list code {
+  color: var(--ion-color-medium, #5b6472);
+  background: transparent;
+  padding: 0;
+  overflow-wrap: anywhere;
+}
+
+.issues-list span {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.issues-note {
+  margin: 0.75rem 0 0.25rem;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium, #5b6472);
+}
+
+.preview {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 16px;
+  background: var(--ion-background-color, #fff);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.preview h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.preview-meta {
+  margin: 0.15rem 0 0;
+  font-weight: 600;
+}
+
+.preview-sub {
+  font-weight: 400;
+  color: var(--ion-color-medium, #5b6472);
+}
+
+.preview-count,
+.preview-empty {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium, #5b6472);
+}
+
+.copy-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.85rem;
+  color: var(--ion-color-medium, #5b6472);
+}
+
+.rows {
+  list-style: none;
+  margin: 1rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-block-size: 44px;
+  padding: 0.5rem 0.6rem;
+  border-radius: 12px;
+  background: var(--ion-color-light, #f4f6fa);
+}
+
+.row-text {
+  display: grid;
+  gap: 0.1rem;
+  min-inline-size: 0;
+  flex: 1 1 auto;
+}
+
+.row-label {
+  font-weight: 600;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.row-description {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium, #5b6472);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #fff;
+  background: var(--accent);
+}
+
+.cancel {
+  margin-top: 0.75rem;
+}
+
+/* Wide viewports: keep the reading column comfortable instead of full-bleed. */
+@media (min-width: 768px) {
+  .intro,
+  .actions,
+  .issues,
+  .preview,
+  .cancel {
+    max-inline-size: 720px;
+    margin-inline: auto;
+  }
+}

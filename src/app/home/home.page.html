@@ -1,0 +1,70 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>{{ config.active()?.app?.title ?? 'AnyRest' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button fill="clear" color="light" aria-label="Configuration" (click)="goConfig()">
+        <ion-icon slot="icon-only" name="settings-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  @if (config.active()?.app?.description; as subtitle) {
+    <ion-toolbar color="primary" class="sub-bar">
+      <p class="app-subtitle">{{ subtitle }}</p>
+    </ion-toolbar>
+  }
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (config.active(); as cfg) {
+    @if (cfg.buttons.length === 0) {
+      <section class="empty">
+        <h2>No operations defined</h2>
+        <p>Add buttons via Configuration to start calling endpoints.</p>
+        <ion-button expand="block" size="large" (click)="goConfig()">
+          <ion-icon slot="start" name="add-circle-outline"></ion-icon>
+          Open Configuration
+        </ion-button>
+      </section>
+    } @else {
+      <ul class="rows">
+        @for (button of cfg.buttons; track button.id) {
+          <li class="row">
+            <button
+              type="button"
+              class="row-btn"
+              [disabled]="isBusy(button.id)"
+              (click)="tap(button)"
+            >
+              <app-button-icon
+                [icon]="button.icon"
+                [iconpath]="cfg.app.iconpath"
+                [storedIcons]="icons.stored()"
+                [label]="button.label"
+              ></app-button-icon>
+              <span class="row-text">
+                <span class="row-label">{{ button.label }}</span>
+                @if (button.description) {
+                  <span class="row-description">{{ button.description }}</span>
+                }
+              </span>
+              <span class="badge" [attr.data-method]="button.request.method">
+                {{ button.request.method }}
+              </span>
+              @if (isBusy(button.id)) {
+                <ion-spinner name="crescent" class="row-spinner" aria-label="In flight"></ion-spinner>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</ion-content>
+
+@if (result(); as view) {
+  <app-result-modal
+    [outcome]="view.outcome"
+    [button]="view.button"
+    (dismiss)="closeResult()"
+  ></app-result-modal>
+}

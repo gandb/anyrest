@@ -1,0 +1,76 @@
+{
+  "version": 1,
+  "app": {
+    "title": "AnyRest Demo",
+    "description": "Configurable REST operations (public demo endpoints on httpbin.org)",
+    "iconpath": "/assets/icons"
+  },
+  "buttons": [
+    {
+      "id": "demo-get",
+      "label": "GET /get",
+      "description": "Fetch current request metadata",
+      "icon": "get.png",
+      "request": {
+        "method": "GET",
+        "url": "https://httpbin.org/get",
+        "headers": { "Accept": "application/json" },
+        "queryParams": { "demo": "true" },
+        "timeoutMs": 15000
+      },
+      "response": { "display": "json", "successMessage": "GET succeeded." }
+    },
+    {
+      "id": "demo-post",
+      "label": "POST /post",
+      "description": "Send a small JSON body",
+      "icon": "post.webp",
+      "request": {
+        "method": "POST",
+        "url": "https://httpbin.org/post",
+        "headers": { "Accept": "application/json" },
+        "body": { "hello": "anyrest", "n": 1 },
+        "timeoutMs": 15000
+      },
+      "response": { "display": "json", "successMessage": "POST succeeded." }
+    },
+    {
+      "id": "demo-put",
+      "label": "PUT /put",
+      "description": "Replace resource (echo)",
+      "icon": "put.png",
+      "request": {
+        "method": "PUT",
+        "url": "https://httpbin.org/put",
+        "body": { "resource": "v1" },
+        "timeoutMs": 15000
+      },
+      "response": { "display": "json" }
+    },
+    {
+      "id": "demo-patch",
+      "label": "PATCH /patch",
+      "description": "Partial update (echo)",
+      "icon": "patch.webp",
+      "request": {
+        "method": "PATCH",
+        "url": "https://httpbin.org/patch",
+        "body": { "field": "value" },
+        "timeoutMs": 15000
+      },
+      "response": { "display": "json" }
+    },
+    {
+      "id": "demo-delete",
+      "label": "DELETE /delete",
+      "description": "Delete resource (echo)",
+      "icon": "delete.png",
+      "request": {
+        "method": "DELETE",
+        "url": "https://httpbin.org/delete",
+        "timeoutMs": 15000
+      },
+      "response": { "display": "json", "errorMessage": "Delete failed." }
+    }
+  ]
+}

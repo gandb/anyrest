@@ -1,0 +1,136 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Configuration</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <section class="intro">
+    <h1>What this app can do</h1>
+    <p>
+      Pick the <code>anyrest.json</code> <strong>and its images</strong> in one selection: the app
+      copies them into itself, so the button icons keep working even if the original files move.
+      Nothing changes until you confirm, and an invalid file never replaces the configuration
+      already in use.
+    </p>
+  </section>
+
+  @if (issues().length > 0) {
+    <section class="issues" role="alert">
+      <p class="issues-summary">Configuration is invalid — {{ issues().length }} issue(s) found.</p>
+      <ul class="issues-list">
+        @for (issue of issues(); track issue) {
+          <li>
+            <code>{{ issue.path }}</code>
+            <span>{{ issue.message }}</span>
+          </li>
+        }
+      </ul>
+      <p class="issues-note">The previously active configuration is unchanged.</p>
+    </section>
+  }
+
+  <div class="actions">
+    <input
+      #picker
+      class="file-input"
+      type="file"
+      multiple
+      accept=".json,application/json,image/png,image/webp"
+      (change)="onFileSelected($event)"
+    />
+    <ion-button expand="block" size="large" [disabled]="busy()" (click)="picker.click()">
+      <ion-icon slot="start" name="document-outline"></ion-icon>
+      @if (config.isConfigured$ | async) {
+        Update configuration
+      } @else {
+        Select anyrest.json + images
+      }
+    </ion-button>
+    <ion-button
+      expand="block"
+      size="large"
+      fill="outline"
+      [disabled]="busy()"
+      (click)="loadDemo()"
+    >
+      <ion-icon slot="start" name="cloud-download-outline"></ion-icon>
+      Load demo configuration
+    </ion-button>
+  </div>
+
+  @if (ignoredFiles().length > 0) {
+    <p class="copy-note" role="status">
+      Ignored (neither anyrest.json nor png/webp): {{ ignoredFiles().join(', ') }}
+    </p>
+  }
+
+  @if (busy()) {
+    <ion-progress-bar type="indeterminate"></ion-progress-bar>
+  }
+
+  @if (preview(); as candidate) {
+    <section class="preview">
+      <header class="preview-head">
+        <h2>Preview</h2>
+        <p class="preview-meta">
+          {{ candidate.app.title }}
+          @if (candidate.app.description) {
+            <span class="preview-sub">— {{ candidate.app.description }}</span>
+          }
+        </p>
+        <p class="preview-count">
+          {{ candidate.buttons.length }} button(s) will be created. Nothing is saved yet.
+        </p>
+        <p class="copy-note">
+          @if (pendingIcons().size > 0) {
+            {{ pendingIcons().size }} image(s) will be copied into the app with this configuration.
+          } @else {
+            No images in this selection — icons that are not a full URL show the fallback tile.
+          }
+        </p>
+      </header>
+
+      @if (candidate.buttons.length === 0) {
+        <p class="preview-empty">
+          This configuration defines no buttons. It is valid — the main screen will show its empty
+          state.
+        </p>
+      } @else {
+        <ul class="rows">
+          @for (button of candidate.buttons; track button.id) {
+            <li class="row">
+              <app-button-icon
+                [icon]="button.icon"
+                [iconpath]="candidate.app.iconpath"
+                [storedIcons]="pendingIcons()"
+                [label]="button.label"
+              ></app-button-icon>
+              <div class="row-text">
+                <span class="row-label">{{ button.label }}</span>
+                @if (button.description) {
+                  <span class="row-description">{{ button.description }}</span>
+                }
+              </div>
+              <span class="badge" [attr.data-method]="button.request.method">{{ button.request.method }}</span>
+            </li>
+          }
+        </ul>
+      }
+
+      <ion-button expand="block" size="large" color="success" [disabled]="busy()" (click)="confirm()">
+        <ion-icon slot="start" name="checkmark-outline"></ion-icon>
+        Confirm and save
+      </ion-button>
+    </section>
+  }
+
+  @if (config.isConfigured$ | async) {
+    <div class="cancel">
+      <ion-button expand="block" fill="clear" color="medium" [disabled]="busy()" (click)="cancel()">
+        <ion-icon slot="start" name="close-outline"></ion-icon>
+        Cancel / Back
+      </ion-button>
+    </div>
+  }
+</ion-content>
