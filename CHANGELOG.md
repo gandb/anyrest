@@ -46,6 +46,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Android build toolchain on the dev machine: Temurin JDK 21 (`~/.local/jdk-21/jdk-21.0.12.1+1`)
   and the Android SDK (`~/Android/Sdk`) with `cmdline-tools` 9862592, `platforms;android-36`,
   `build-tools;36.0.0` and `platform-tools;37.0.1`, licenses accepted.
+- **MIT license**: the repository is released under the **MIT License** — `LICENSE` (MIT,
+  Copyright (c) 2026 Edson Vicente Carli Junior). It is now declared in `package.json`
+  (`"license": "MIT"`) and in the README **License** section, which previously stated that no
+  license file was present and that all rights were reserved.
+- **Screenshots in the README**: a **Screenshots** section at the top (configuration on first run,
+  main screen with the demo operations, success and error result modals, empty state). The images
+  live in `docs/screenshots/` — stable copies of the captures in `docs/temp/ui/`.
 
 ### Fixed
 

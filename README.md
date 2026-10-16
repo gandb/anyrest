@@ -13,6 +13,18 @@ nothing is recompiled.
 - Normative schema: [`src/assets/schema/anyrest.schema.json`](src/assets/schema/anyrest.schema.json)
 - Changes: [`CHANGELOG.md`](CHANGELOG.md)
 
+## Screenshots
+
+<p>
+  <img src="docs/screenshots/config-first-run.png" width="260" alt="Configuration screen on first run" />
+  <img src="docs/screenshots/home-390.png" width="260" alt="Main screen with the demo operations" />
+  <img src="docs/screenshots/result-modal-success-390.png" width="260" alt="Result modal for a successful call" />
+</p>
+<p>
+  <img src="docs/screenshots/result-modal-error-390.png" width="260" alt="Result modal for a failed call" />
+  <img src="docs/screenshots/empty-state-390.png" width="260" alt="Empty state when no operations are defined" />
+</p>
+
 ## Requirements
 
 | Requirement | Value |
@@ -242,6 +254,7 @@ not a promise.
 
 `docs/temp/ui/`: `config-first-run.png`, `home-360.png`, `home-390.png`, `home-768.png`,
 `result-modal-success-390.png`, `result-modal-error-390.png`, `empty-state-390.png`.
+The screenshots shown at the top of this README are stable copies under `docs/screenshots/`.
 
 ## Repository layout
 
@@ -267,5 +280,6 @@ www/                             production web build output (Capacitor webDir)
 
 ## License
 
-No license file is present in this repository. All rights reserved by the author until one is
-added.
+Released under the **MIT License** — see [`LICENSE`](LICENSE).
+
+Copyright (c) 2026 Edson Vicente Carli Junior.
