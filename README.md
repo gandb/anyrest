@@ -5,7 +5,7 @@ and running in the browser during development.
 
 The app contains **no hardcoded operations**. Its entire UI — title, buttons, icons, HTTP method,
 URL, headers, query parameters, body — is produced from a single external file, `anyrest.json`
-(the *config*). Load a different config and the same installed app becomes a different tool;
+(the *config*). Load a different config and the same installed app becomes a different tool; 
 nothing is recompiled.
 
 - Specification: [`docs/SPEC.md`](docs/SPEC.md) (frozen v1)
@@ -27,10 +27,10 @@ nothing is recompiled.
 
 ## Requirements
 
-| Requirement | Value |
-|---|---|
-| Node.js | `>= 20` (verified here on `v24.15.0`) |
-| npm | verified here on `11.12.1` |
+| Requirement              | Value                                                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Node.js                  | `>= 20` (verified here on `v24.15.0`)                                                                                                      |
+| npm                      | verified here on `11.12.1`                                                                                                                 |
 | Android build (optional) | Android SDK + a JDK 17/21. **Present on this machine:** Temurin 21 (`~/.local/jdk-21/`) + Android SDK (`~/Android/Sdk`); run `./build.sh`. |
 
 ## Install
@@ -130,6 +130,7 @@ distribution name at the repository root — **`any-rest.apk`** (same bytes, com
 
 1. **First run.** With no saved configuration the app opens the **Configuration** screen.
 2. **Load a config.** Either
+   
    - **Select anyrest.json** (or **Update configuration** when one is already active) → pick the `.json`;
      then **Add images** for each image you need — **one at a time is fine**, the app keeps every image you
      add (the list of what is ready is shown, with **Clear images**). A multi-file pick or, on a desktop
@@ -137,6 +138,7 @@ distribution name at the repository root — **`any-rest.apk`** (same bytes, com
      (png/webp only, ≤ 512 KiB each), so a button that names an image (`"icon": "get.png"`, no
      `app.iconpath`) keeps working even if the original files move. If a named image was not added, the
      preview says so and lists it. Or
+   
    - **Load demo configuration** → loads the bundled demo (`src/assets/anyrest.demo.json`, semantically
      identical to the root [`anyrest.json`](anyrest.json)) which points at `https://httpbin.org`.
    The app parses, validates against the schema, and shows a **preview** of the buttons
